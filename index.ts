@@ -1,5 +1,6 @@
-let elementDivider = '__';
-let modifierDivider = '--';
+let defaultElementDivider = '__';
+let defaultModifierDivider = '--';
+let defaultThemeDivider = '__';
 
 type BlockName = string[] | string;
 type ElementName = string[] | string;
@@ -16,40 +17,46 @@ class Bem {
     modDivider?: string,
   ) {
     this.blockNames = Array.isArray(blockClassName) ? blockClassName : [blockClassName];
-    this.elDivider = elDivider === undefined ? elementDivider : elDivider;
-    this.modDivider = modDivider === undefined ? modifierDivider : modDivider;
+    this.elDivider = elDivider === undefined ? defaultElementDivider : elDivider;
+    this.modDivider = modDivider === undefined ? defaultModifierDivider : modDivider;
   }
 
   public block(modifier?: ModifierName): string {
+    return this.blockArr(modifier).join(' ');
+  }
+
+  protected blockArr(modifier?: ModifierName): string[] {
     const {
       blockNames,
     } = this;
 
     if (!modifier) {
-      return blockNames.join(' ');
+      return blockNames;
     }
 
     const modifiers = Bem.arr(modifier);
 
-    return Bem.concatArrayElements(blockNames, modifiers, this.modDivider, true).join(' ');
+    return Bem.mergeArrayElements(blockNames, modifiers, this.modDivider, true);
   }
 
   public element(element: ElementName, modifier?: ModifierName): string {
+    return this.elementArr(element, modifier).join(' ');
+  }
+
+  protected elementArr(element: ElementName, modifier?: ModifierName): string[] {
     const {
       blockNames,
     } = this;
 
     const elements = Bem.arr(element);
-    const elementClasses = Bem.concatArrayElements(blockNames, elements, this.elDivider, false);
+    const elementClasses = Bem.mergeArrayElements(blockNames, elements, this.elDivider, false);
 
     if (!modifier) {
-      return elementClasses.join(' ');
+      return elementClasses;
     }
 
     const modifiers = Bem.arr(modifier);
-    const withModifiers = Bem.concatArrayElements(elementClasses, modifiers, this.modDivider, true);
-
-    return withModifiers.join(' ');
+    return Bem.mergeArrayElements(elementClasses, modifiers, this.modDivider, true);
   }
 
   // private part
@@ -58,29 +65,75 @@ class Bem {
     return Array.isArray(data) ? data : [data];
   }
 
-  private static concatArrayElements(firstPart: string[], secondPart: string[], delimiter: string, withBaseArr: boolean) {
-    // Why forEach + push: https://jsperf.com/test-concat-spread
+  private static mergeArrayElements(firstPart: string[], secondPart: string[], delimiter: string, withBaseArr: boolean) {
+    // Why double for + push: https://jsperf.com/test-concat-spread/9
     // Why template string: https://jsperf.com/string-plus-string-concat-template-string
 
-    let results = [];
+    let results = withBaseArr ? firstPart.slice() : [];
 
-    firstPart.forEach((block) => {
-      secondPart.forEach((element) => {
-        results.push(`${block}${delimiter}${element}`)
-      });
-    });
+    let firstPartLen = firstPart.length;
+    let secondPartLen = secondPart.length;
 
-    if (withBaseArr) {
-      return firstPart.concat(results);
+    for (let i = 0; i < firstPartLen; i++) {
+      for (let j = 0; j < secondPartLen; j++) {
+        results.push(`${firstPart[i]}${delimiter}${secondPart[j]}`)
+      }
     }
 
     return results;
   }
 }
 
+class ThemedBem extends Bem {
+  private themeDivider?: string;
+  private currentTheme?: string;
+
+  constructor(
+    blockClassName: BlockName,
+    elDivider?: string,
+    modDivider?: string,
+    themeDivider?: string,
+  ) {
+    super(blockClassName, elDivider, modDivider);
+
+    this.themeDivider = themeDivider === undefined ? defaultThemeDivider : themeDivider;
+  }
+
+  public useTheme(theme?: string) {
+    this.currentTheme = theme;
+  }
+
+  public block(modifier?: ModifierName): string {
+    const classList = super.blockArr(modifier);
+
+    if (!this.currentTheme) {
+      return classList.join(' ');
+    }
+
+    return this.addThemePrefix(classList).join(' ');
+  }
+
+  public element(element: ElementName, modifier?: ModifierName): string {
+    const classList = super.elementArr(element, modifier);
+
+    if (!this.currentTheme) {
+      return classList.join(' ');
+    }
+
+    return this.addThemePrefix(classList).join(' ');
+  }
+
+  private addThemePrefix(classList: string[]): string[] {
+    return classList
+      .map((className) => `${this.currentTheme}${this.themeDivider}${className}`)
+      .concat(classList);
+  }
+}
+
 export {
   // Main class
   Bem,
+  ThemedBem,
 
   // Base types
   BlockName,
