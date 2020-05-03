@@ -1,6 +1,6 @@
 {
   "name": "@igor-gerasimovich/bem-helper",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Bem class generation helper",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
