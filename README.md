@@ -2,9 +2,16 @@
 
 > Simple class for automatically `block__element--modifier` generation
 
+- [Installation](#installation)
 - [Examples](#examples)
     - [Example native](#example-native)
     - [Example react](#example-react)
+    
+    
+#### Installation
+```
+npm i @igor-gerasimovich/bem-helper
+```
 
 #### Examples
 ##### Example native
